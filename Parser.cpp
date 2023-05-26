@@ -67,7 +67,8 @@ Node* Parser::parse_exponents() {
 Node* Parser::parse_factor() {
     std::string previous_token {};
     Node *node = nullptr;
-    if (std::isdigit(current_token.at(0))) {
+                                                 // Hard coding in the variable, change later;
+    if (std::isdigit(current_token.at(0)) || current_token == "x") {
         previous_token = current_token;
         node = new Node(current_token);
         this->advance();

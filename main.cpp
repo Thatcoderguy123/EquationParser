@@ -1,7 +1,6 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include <iostream>
-#include <iomanip>
 
 const std::vector<std::string> operators {"+", "-", "*", "/", "^", "(", ")"};
 
@@ -19,8 +18,8 @@ void printTreeInorder(const Node *n) {
 
 double operator_evaluate(const std::string &v1, const std::string &v2, const std::string &operand) {
     double sum = 0;
-    auto num1 = std::stof(v1);
-    auto num2 = std::stof(v2);
+    double num1 = std::stod(v1);
+    double num2 = std::stod(v2);
 
     if (operand == "+") {
         sum += (num1 + num2);
@@ -37,14 +36,20 @@ double operator_evaluate(const std::string &v1, const std::string &v2, const std
     return sum;
 }
 
-void evaluate(Node *n) {
+void evaluate(Node *n, const double replace) {
+    // hardcoding in variable, change later
+    if (n->value == "x") {
+        n->value = std::to_string(replace);
+    }
+
     if (n->left) {
-        evaluate(n->left);
+        evaluate(n->left, replace);
     }
     if (n->right) {
-        evaluate(n->right);
+        evaluate(n->right, replace);
     }
-    if ( n->left && n->right && (std::isdigit(n->left->value.at(0)) && std::isdigit(n->right->value.at(0))) ) {
+
+    if (n->left && n->right && (std::isdigit(n->left->value.at(0)) && std::isdigit(n->right->value.at(0))) ) {
         auto value = operator_evaluate(n->left->value, n->right->value, n->value);
         n->value = std::to_string(value);
         n->left = nullptr;
@@ -55,17 +60,14 @@ void evaluate(Node *n) {
 
 int main() {
     const char variable {'x'};
-    Lexer lexer = Lexer(variable, "5*15"); // Doesn't work with exponent, can only print 3 things of the tree, etc.
+    Lexer lexer = Lexer(variable, "2(xx)");
     auto tokens = lexer.tokenize();
 
     Parser parser = Parser(tokens);
     auto tree = parser.parse();
 
-    evaluate(tree);
+    evaluate(tree, 2); // giving wrong value why?
     std::cout << "Evaluation: " << tree->value << std::endl;
-
-    // For Parser, before parsing the expression, replace 'x' with the value to parse at
-    // Include later about how to do handle decimals, and correct number of parentheses
 
     return 0;
 }

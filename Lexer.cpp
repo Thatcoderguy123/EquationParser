@@ -5,6 +5,9 @@
 #include "Lexer.h"
 #include <iostream>
 
+#define PI 3.1415926
+#define E  2.7182818
+
 Lexer::Lexer(const char &var, const std::string &function)
     : variable {var}, function {function}, PIXELS_PER_UNIT {10}, constants {"pi", "e"},
       operators {"+", "-", "*", "/", "^", "(", ")"},
@@ -61,23 +64,35 @@ std::vector<std::string> Lexer::tokenize() {
 
         // Handling Numbers, Constants and Later, Functions
         else {
-            // Handling Number
             std::string number {};
             std::string special_token {};
 
-            if (isNumeric(at)) {
-                while (isNumeric(at)) {
-                    number.push_back(at);
-                    i++;
-                    at = function[i];
+            // Handling Number
+            int decimal_point_count {};
+            if (isNumeric(at) || at == '.') {
+                if (isNumeric(at)) {
+                    while (isNumeric(at)) {
+                        number += at;
+                        i++;
+                        at = function[i];
+                        // decimal point check
+                        if (at == '.') {
+                            decimal_point_count++;
+                            if (decimal_point_count == 1) {
+                                number += at;
+                                i++;
+                                at = function[i];
+                            }
+                        }
+                    }
 
+                    tokens.push_back(number);
+                    // To make sure that i++ doesn't happen twice and that we skip over a token;
+                    i--;
                 }
-                tokens.push_back(number);
-                // To make sure that i++ doesn't happen twice and that we skip over a token;
-                i--;
             }
 
-            // Handling Function (LATER)
+            // Handling Function
             else if (isCharacter(at)) {
                 while (isCharacter(at)) {
                     special_token.push_back(at);
@@ -87,8 +102,18 @@ std::vector<std::string> Lexer::tokenize() {
                 // To make sure that i++ doesn't happen twice and that we skip over a token;
                 i--;
 
-                if (in(special_token, special_tokens) || in(special_token, constants)) {
+                // Function part
+                if (in(special_token, special_tokens)) {
                     tokens.push_back(special_token);
+                } // Constants Part
+                  else if (in(special_token, constants)) {
+                    if (special_token == "pi") {
+                        special_token = std::to_string(PI);
+                        tokens.push_back(special_token);
+                    } else {
+                        special_token = std::to_string(E);
+                        tokens.push_back(special_token);
+                    }
                 } else {
                     std::cout << "INVALID TOKEN!: " << special_token << std::endl;
                     std::exit(1);
@@ -97,6 +122,33 @@ std::vector<std::string> Lexer::tokenize() {
             else {
                 std::cout << "INVALID TOKEN!: " << at << std::endl;
             }
+        }
+    }
+
+    // Handling Implicit Multiplication
+    for (int i {}; i < tokens.size()-1;i++) {
+        auto at = tokens.at(i);
+        auto next = tokens.at(i+1);
+        // CASE: NUMBER (<VARIABLE || NUMBER, FUNCTION>)
+        if (isNumeric(at.at(0)) && next == "(") {
+            tokens.insert(tokens.begin() + i + 1, "*");
+        }
+        // CASE: NUMBER <VARIABLE || FUNCTION>
+        else if (isNumeric(at.at(0)) && ((next.size() == 1 && next.at(0) == variable)) || in(next, special_tokens)) {
+            tokens.insert(tokens.begin() + i + 1, "*");
+        }
+
+        // CASE: Variable Variable
+        else if (((at.size() == 1 && at.at(0) == variable)) && ((next.size() == 1 && next.at(0) == variable))) {
+            tokens.insert(tokens.begin() + i + 1, "*");
+        }
+        // CASE: Variable (<VARIABLE || FUNCTION>)
+        else if (((at.size() == 1 && at.at(0) == variable)) && next == "(") {
+            tokens.insert(tokens.begin() + i + 1, "*");
+        }
+        // CASE: VARIABLE FUNCTION
+        else if (((at.size() == 1 && at.at(0) == variable)) && in(next, special_tokens)) {
+            tokens.insert(tokens.begin() + i + 1, "*");
         }
     }
 
